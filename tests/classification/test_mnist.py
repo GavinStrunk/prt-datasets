@@ -1,5 +1,5 @@
 import torch
-import prt.datasets.pytorch.mnist as dpm
+import prt_datasets.classification.mnist as dpm
 
 
 def test_setup():

@@ -15,6 +15,11 @@ class COCODetection(Dataset):
     """
     COCO Detection 2017 dataset.
 
+    .. image:: /_static/coco-2017.png
+        :alt: COCO 2017 Example
+        :width: 100%
+        :align: center
+
     On-disk layout after `download(root)`:
         <root>/
           coco/

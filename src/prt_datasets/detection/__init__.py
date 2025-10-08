@@ -57,3 +57,8 @@ Example
     print(target["image_id"], target.get("size"))
 
 """
+from .coco import COCODetection
+
+__all__ = [
+    "COCODetection",
+]
