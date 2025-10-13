@@ -57,8 +57,8 @@ Example
     print(target["image_id"], target.get("size"))
 
 """
-from .coco import COCODetection
+from .coco import COCODataset
 
 __all__ = [
-    "COCODetection",
+    "COCODataset",
 ]

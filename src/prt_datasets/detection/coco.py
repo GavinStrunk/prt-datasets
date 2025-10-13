@@ -11,7 +11,7 @@ from prt_datasets.base import Dataset
 import prt_datasets.common.utils as utils
 
 
-class COCODetection(Dataset):
+class COCODataset(Dataset):
     """
     COCO Detection 2017 dataset.
 
@@ -39,6 +39,45 @@ class COCODetection(Dataset):
             labels  -> LongTensor  [N]
             image_id-> int
 
+    Example:
+        .. code-block:: python
+
+            from pathlib import Path
+            from prt_datasets.coco import COCODataset
+
+            # Choose a local data root (create if missing)
+            root = Path("~/data/prt").expanduser()
+
+            # 1) Download
+            COCODataset.download(
+                root=root,
+                splits=("val",),                # pick the splits you need: ("train","val","test")
+                download_images=True,
+                download_annotations=True,
+            )
+
+            # 2) Construct the dataset
+            ds = COCODataset(root=root, split="val")
+
+            # 3) Grab the first sample and display the image
+            img, target = ds[0]
+            print(img.shape, img.dtype)        # e.g., torch.Size([3, H, W]) torch.uint8
+            print(target["image_id"], target["boxes"].shape)
+
+            # Display with PIL (no need for matplotlib)
+            from PIL import Image
+            Image.fromarray(img.permute(1, 2, 0).numpy()).show()
+
+            # (Optional) If you prefer matplotlib and want to draw boxes:
+            # import matplotlib.pyplot as plt
+            # import matplotlib.patches as patches
+            # fig, ax = plt.subplots()
+            # ax.imshow(img.permute(1, 2, 0).numpy())
+            # for (x1, y1, x2, y2) in target["boxes"].tolist():
+            #     rect = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, fill=False, linewidth=1)
+            #     ax.add_patch(rect)
+            # ax.axis("off"); plt.show()              
+
     Args:
         root (Path): Root directory of the dataset
         split (str): One of {"train","val","test"}
@@ -46,44 +85,7 @@ class COCODetection(Dataset):
         categories (list, optional): If provided, only load these category ids
         skip_empty (bool): If True, skip images without annotations (train/val only)
 
-    Example:
-    .. code-block:: python
-
-        from pathlib import Path
-        from prt_datasets.coco import COCODetection
-
-        # Choose a local data root (create if missing)
-        root = Path("~/data/prt").expanduser()
-
-        # 1) Download (one-time, idempotent). You can pass mirrors=[...] if you host a mirror.
-        COCODetection.download(
-            root=root,
-            splits=("val",),                # pick the splits you need: ("train","val","test")
-            download_images=True,
-            download_annotations=True,
-        )
-
-        # 2) Construct the dataset
-        ds = COCODetection(root=root, split="val")
-
-        # 3) Grab the first sample and display the image
-        img, target = ds[0]
-        print(img.shape, img.dtype)        # e.g., torch.Size([3, H, W]) torch.uint8
-        print(target["image_id"], target["boxes"].shape)
-
-        # Display with PIL (no need for matplotlib)
-        from PIL import Image
-        Image.fromarray(img.permute(1, 2, 0).numpy()).show()
-
-        # (Optional) If you prefer matplotlib and want to draw boxes:
-        # import matplotlib.pyplot as plt
-        # import matplotlib.patches as patches
-        # fig, ax = plt.subplots()
-        # ax.imshow(img.permute(1, 2, 0).numpy())
-        # for (x1, y1, x2, y2) in target["boxes"].tolist():
-        #     rect = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, fill=False, linewidth=1)
-        #     ax.add_patch(rect)
-        # ax.axis("off"); plt.show()        
+      
     """
 
     # -----------------------------
@@ -310,7 +312,7 @@ class COCODetection(Dataset):
                     need_extract = not _annotations_already_extracted()
 
             if need_extract:
-                utils.extract_file(str(dst_zip), extract_to=str(target_dir), delete_zip=False)
+                utils.extract_file(str(dst_zip), extract_to=str(target_dir), delete_zip=True)
 
             # Always flatten the nested `annotations/` dir if it exists
             if kind == "annotations":
@@ -334,7 +336,7 @@ if __name__ == "__main__":
         from pathlib import Path
 
         # 1) Download (one-time, idempotent). You can pass mirrors=[...] if you host a mirror.
-        COCODetection.download(
+        COCODataset.download(
             root=None,
             splits=("val",),                # pick the splits you need: ("train","val","test")
             download_images=True,
@@ -342,7 +344,7 @@ if __name__ == "__main__":
         )
 
         # 2) Construct the dataset
-        ds = COCODetection(root=None, split="val")
+        ds = COCODataset(root=None, split="val")
 
         # 3) Grab the first sample and display the image
         img, target = ds[0]
