@@ -57,8 +57,10 @@ Example
     print(target["image_id"], target.get("size"))
 
 """
+from .bdd100k import BDD100KDataset
 from .coco import COCODataset
 
 __all__ = [
+    "BDD100KDataset",
     "COCODataset",
 ]

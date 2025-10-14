@@ -90,20 +90,21 @@ class BDD100KDataset(Dataset):
         assert split in ("train", "val", "test"), "split must be 'train', 'val' or 'test'"
 
         self.root = utils.resolve_root(root, create=False)
+        self.base = self.root / "bdd100k"
         self.split = split
         self.transform = transform
         self.target_transform = target_transform
 
         # Create file paths
-        self.images_dir = self.root / "images" / "100k" / self.split
-        self.labels_file = self.root / "labels" / "det_20" / f"det_{self.split}.json"
+        self.images_dir = self.base / "images" / "100k" / self.split
+        self.labels_file = self.base / "labels" / "det_20" / f"det_{self.split}.json"
         if not self.images_dir.exists():
             raise FileNotFoundError(f"BDD100K images folder not found: {self.images_dir}")
         if not self.labels_file.exists():
             raise FileNotFoundError(f"BDD100K labels file not found: {self.labels_file}")
 
         # Build index
-        self.data = self._load_bdd_det_json(self.labels_path, self.images_dir)
+        self.data = self._load_bdd_det_json(self.labels_file, self.images_dir)
 
     def __len__(self) -> int:
         return len(self.data)
