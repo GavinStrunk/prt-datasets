@@ -1,9 +1,12 @@
 """
 BDD100K detection dataset
 """
+import fiftyone as fo
+import fiftyone.types as fot
 import json
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
+import textwrap
 import torch
 from PIL import Image
 from prt_datasets.common.conversions import pil_to_tensor
@@ -238,6 +241,93 @@ class BDD100KDataset(Dataset):
 
         return base
     
+    @classmethod
+    def create_yolo_labels(cls,
+                    root: Path | None = None,
+                    ) -> None:
+        """
+        Create a YOLOv5/YOLOv8/YOLOv10-style dataset using FiftyOne:
+          - Reads BDD100K detection JSONs (det_20)
+          - Exports YOLO labels + symlinked images for train/val
+          - Writes data.yaml under bdd100k/labels/yolo
+
+        Expected source layout under <root>/bdd100k/:
+          images/100k/{train,val}/*.jpg
+          labels/det_20/det_{train,val}.json
+
+        Output under <root>/bdd100k/labels/yolo/:
+          images/{train,val}/...          (symlinks)
+          labels/{train,val}/*.txt
+          data.yaml
+        """
+        root = utils.resolve_root(root, create=True)
+        base = root / "bdd100k"
+
+        src_img_root = base / "images" / "100k"
+        src_lbl_root = base / "labels" / "det_20"
+
+        out_root = base / "labels" / "yolo"
+        out_root.mkdir(parents=True, exist_ok=True)
+
+        BDD_CLASSES = cls.CLASS_LABELS.keys()
+
+        # Clean up any prior exports (optional; keeps export idempotent)
+        for split in ("train", "val"):
+            (out_root / "images" / split).mkdir(parents=True, exist_ok=True)
+            (out_root / "labels" / split).mkdir(parents=True, exist_ok=True)
+
+        # We'll load per-split into lightweight FO datasets and export to YOLO
+        def _load_and_export(split: str) -> None:
+            data_path = src_img_root / split
+            json_path = src_lbl_root / f"det_{split}.json"
+            if not data_path.exists():
+                raise FileNotFoundError(f"Missing images dir: {data_path}")
+            if not json_path.exists():
+                raise FileNotFoundError(f"Missing labels file: {json_path}")
+
+            # Create a short-lived dataset name to avoid collisions in FO's DB
+            ds_name = f"bdd100k-{split}-det-yolo-tmp"
+            if ds_name in fo.list_datasets():
+                fo.delete_dataset(ds_name)
+
+            ds = fo.Dataset.from_dir(
+                dataset_dir=str(base),
+                data_path=str(data_path),
+                labels_path=str(json_path),
+                dataset_type=fot.BDDDataset,     # native BDD reader
+                label_field="detections",         # where boxes will live
+                name=ds_name,
+            )
+
+            # Export to YOLO format; Ultralytics YOLOv5Dataset works for v5/8/10
+            ds.export(
+                export_dir=str(out_root),
+                dataset_type=fot.YOLOv5Dataset,
+                label_field="detections",
+                classes=BDD_CLASSES,
+                split=split,                      # writes images/<split>, labels/<split>
+                export_media="symlink",           # don't copy huge images
+                overwrite=True,
+            )
+
+            # remove the temp dataset to keep the FO DB tidy
+            fo.delete_dataset(ds_name)
+
+        for split in ("train", "val"):
+            _load_and_export(split)
+
+        # Write a ultralytics-style data.yaml (explicit, even though FO writes one)
+        yaml_text = textwrap.dedent(f"""\
+            path: {out_root.as_posix()}
+            train: images/train
+            val: images/val
+            nc: {len(BDD_CLASSES)}
+            names: [{", ".join(repr(n) for n in BDD_CLASSES)}]
+        """)
+        (out_root / "data.yaml").write_text(yaml_text)
+
+    
 if __name__ == "__main__":
     # Simple test / usage example
-    dataset = BDD100KDataset.download()
+    # dataset = BDD100KDataset.download()
+    BDD100KDataset.create_yolo_labels()

@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "fiftyone>=1.8.1",
     "lightning>=2.5.5",
     "numpy>=2.3.3",
     "pillow>=11.3.0",
@@ -13,6 +14,7 @@ dependencies = [
 ]
 
 [dependency-groups]
+detection = []
 dev = [
     "myst-parser>=4.0.1",
     "nbsphinx>=0.9.7",
